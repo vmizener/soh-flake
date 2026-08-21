@@ -15,16 +15,19 @@
       "aarch64-linux"
     ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
-    release-info = import ./release-linux.nix;
+    releaseInfo = import ./release-linux.nix;
 
-    shipwright = pkgs : pkgs.appimageTools.wrapType2 rec {
-      pname = release-info.name;
-      version = release-info.version;
-      src = pkgs.fetchurl {
-        inherit pname version;
-        hash = release-info.hash;
-        url = release-info.asset;
-      };
+    soh = pkgs : pkgs.appimageTools.wrapType2 rec {
+      pname = releaseInfo.name;
+      version = releaseInfo.version;
+      src = let
+        zip = pkgs.fetchzip {
+          name = pname;
+          url = "https://github.com/HarbourMasters/Shipwright/releases/download/${releaseInfo.version}/${releaseInfo.name}-Linux.zip";
+          hash = releaseInfo.hash;
+          stripRoot = false;
+        };
+      in "${zip}/soh.appimage";
       extraInstallCommands = ''
         install -Dm644 ${./soh.desktop} $out/share/applications/soh.desktop
       '';
@@ -33,12 +36,11 @@
     packages = forAllSystems (system: let
       pkgs = import nixpkgs { inherit system; };
     in rec {
-      shipofharkinian = shipwright pkgs;
+      shipofharkinian = soh pkgs;
       default = shipofharkinian;
     });
     homeManagerModules.shipofharkinian = { config, lib, pkgs, ... }: let
       cfg = config.programs.shipofharkinian;
-      package = shipwright pkgs;
     in {
       options.programs.shipofharkinian = {
         enable = lib.mkEnableOption "Ship of Harkinian";
@@ -51,7 +53,7 @@
         };
       };
       config = lib.mkIf cfg.enable {
-        home.packages = [ package ];
+        home.packages = [ (soh pkgs) ];
       };
     };
   };
