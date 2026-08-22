@@ -17,12 +17,12 @@
     forAllSystems = nixpkgs.lib.genAttrs systems;
     releaseInfo = import ./release-linux.nix;
 
-    soh = pkgs : pkgs.appimageTools.wrapType2 rec {
-      pname = releaseInfo.name;
+    soh = pkgs : pkgs.appimageTools.wrapType2 {
+      pname = "ShipOfHarkinian";
       version = releaseInfo.version;
       src = let
         zip = pkgs.fetchzip {
-          name = pname;
+          name = releaseInfo.name;
           url = "https://github.com/HarbourMasters/Shipwright/releases/download/${releaseInfo.version}/${releaseInfo.name}-Linux.zip";
           hash = releaseInfo.hash;
           stripRoot = false;
@@ -52,16 +52,32 @@
     in {
       options.programs.shipofharkinian = {
         enable = lib.mkEnableOption "Ship of Harkinian";
-        gamepath = lib.mkOption {
-          type = lib.types.nullOr lib.types.path;
-          default = null;
+        gamepaths = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [];
           description = ''
-            Path to legal OOT dump.
+            Absolute paths to legal image dumps to include with SoH.
+            Images are copied into the SoH data directory.
           '';
         };
       };
       config = lib.mkIf cfg.enable {
         home.packages = [ (soh pkgs) ];
+        home.activation.shipofharkinianImages = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          data_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian"
+          mkdir -p $data_dir
+          ${lib.concatMapStringSep "\n" (path: ''
+            source=${lib.escapeShellArg path}
+            target="$data_dir/$(basename "$source")"
+            if [ ! -f "$source" ]; then
+              echo "Image path does not exist" >&2
+              exit 1
+            fi
+            if [ ! -e "$target" ] || ! cmp -s "$source" "$target"; then
+              install -Dm644 "$source" "$target"
+            fi
+          '') cfg.gamepaths}
+        '';
       };
     };
   };

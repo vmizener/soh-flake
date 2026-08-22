@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Ship of Harkinian
 Comment=Enough! My ship sails in the morning!
-Exec=shipofharkinian
+Exec=ShipOfHarkinian
 Terminal=false
 Type=Application
 Categories=Game;
