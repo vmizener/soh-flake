@@ -39,6 +39,14 @@
       shipofharkinian = soh pkgs;
       default = shipofharkinian;
     });
+
+    checks = forAllSystems (system: let
+      pkgs = import nixpkgs { inherit system; };
+      package = soh pkgs;
+    in {
+      package-builds = package;
+    });
+
     homeManagerModules.shipofharkinian = { config, lib, pkgs, ... }: let
       cfg = config.programs.shipofharkinian;
     in {
