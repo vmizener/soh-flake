@@ -17,38 +17,60 @@
     forAllSystems = nixpkgs.lib.genAttrs systems;
     releaseInfo = import ./release-linux.nix;
 
-    soh = pkgs : pkgs.appimageTools.wrapType2 {
-      pname = "ShipOfHarkinian";
-      version = releaseInfo.version;
-      src = let
-        zip = pkgs.fetchzip {
-          name = releaseInfo.name;
-          url = "https://github.com/HarbourMasters/Shipwright/releases/download/${releaseInfo.version}/${releaseInfo.name}-Linux.zip";
-          hash = releaseInfo.hash;
-          stripRoot = false;
-        };
-      in "${zip}/soh.appimage";
-      extraInstallCommands = ''
-        install -Dm644 ${./soh.desktop} $out/share/applications/soh.desktop
+    sohAppImage = pkgs: let
+      zip = pkgs.fetchzip {
+        name = releaseInfo.name;
+        url = "https://github.com/HarbourMasters/Shipwright/releases/download/${releaseInfo.version}/${releaseInfo.name}-Linux.zip";
+        hash = releaseInfo.hash;
+        stripRoot = false;
+      };
+    in pkgs.runCommand "soh-appimage" {} ''
+      appimage = "$(find ${zip} \
+        -type f \
+        -iname '*.appimage' \
+        -print -quit)"
+      if [ -z "appimage" ]; then
+        echo "failed to find appimage in zip archive" >&2
+        find ${zip} -type f -print >&2
+        exit 1
+      fi
+      mkdir -p "$out"
+      install -Dm755 "$appimage" "$out/soh.appimage"
+    '';
+    sohLauncher = pkgs: pkgs.writeShellApplication {
+      name = "ShipOfHarkinian";
+      runtimeInputs = [ pkgs.coreutils ];
+      text = ''
+        data_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian"
+        appimage="data_dir/soh.appimage"
+        if [ ! -x "$appimage" ]; then
+          echo "soh.appimage missing in data dir; run home manager activation first" >&2
+          exit 1
+        fi
+        cd "$data_dir"
+        exec "$appimage" "$@"
       '';
+    # install -Dm644 ${./soh.desktop} $out/share/applications/soh.desktop
     };
   in {
     packages = forAllSystems (system: let
       pkgs = import nixpkgs { inherit system; };
     in rec {
-      shipofharkinian = soh pkgs;
+      shipofharkinian = sohLauncher pkgs;
       default = shipofharkinian;
     });
 
     checks = forAllSystems (system: let
       pkgs = import nixpkgs { inherit system; };
-      package = soh pkgs;
+      package = sohLauncher pkgs;
     in {
       package-builds = package;
     });
 
     homeManagerModules.shipofharkinian = { config, lib, pkgs, ... }: let
       cfg = config.programs.shipofharkinian;
+      appimage = sohAppImage pkgs;
+      launcher = sohLauncher pkgs;
     in {
       options.programs.shipofharkinian = {
         enable = lib.mkEnableOption "Ship of Harkinian";
@@ -62,10 +84,12 @@
         };
       };
       config = lib.mkIf cfg.enable {
-        home.packages = [ (soh pkgs) ];
+        home.packages = [ launcher ];
         home.activation.shipofharkinianImages = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
           data_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian"
           mkdir -p $data_dir
+
+          install -Dm755 "${appimage}/soh.appimage" "$data_dir/soh.appimage"
           ${lib.concatMapStringSep "\n" (path: ''
             source=${lib.escapeShellArg path}
             target="$data_dir/$(basename "$source")"
