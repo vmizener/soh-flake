@@ -17,7 +17,7 @@
     forAllSystems = nixpkgs.lib.genAttrs systems;
     releaseInfo = import ./release-linux.nix;
 
-    sohAppImage = pkgs: let
+    sohInstaller = pkgs: let
       zip = pkgs.fetchzip {
         name = releaseInfo.name;
         url = "https://github.com/HarbourMasters/Shipwright/releases/download/${releaseInfo.version}/${releaseInfo.name}-Linux.zip";
@@ -25,17 +25,18 @@
         stripRoot = false;
       };
     in pkgs.runCommand "soh-appimage" {} ''
-      appimage = "$(find ${zip} \
+      appimage="$(find ${zip} \
         -type f \
         -iname '*.appimage' \
         -print -quit)"
-      if [ -z "appimage" ]; then
+      if [ -z "$appimage" ]; then
         echo "failed to find appimage in zip archive" >&2
         find ${zip} -type f -print >&2
         exit 1
       fi
       mkdir -p "$out"
       install -Dm755 "$appimage" "$out/soh.appimage"
+      install -Dm644 ${./soh.desktop} $out/share/applications/soh.desktop
     '';
     sohLauncher = pkgs: pkgs.writeShellApplication {
       name = "ShipOfHarkinian";
@@ -50,12 +51,12 @@
         cd "$data_dir"
         exec "$appimage" "$@"
       '';
-    # install -Dm644 ${./soh.desktop} $out/share/applications/soh.desktop
     };
   in {
     packages = forAllSystems (system: let
       pkgs = import nixpkgs { inherit system; };
     in rec {
+      shipinstaller = sohInstaller pkgs;
       shipofharkinian = sohLauncher pkgs;
       default = shipofharkinian;
     });
@@ -69,7 +70,7 @@
 
     homeManagerModules.shipofharkinian = { config, lib, pkgs, ... }: let
       cfg = config.programs.shipofharkinian;
-      appimage = sohAppImage pkgs;
+      installer = sohInstaller pkgs;
       launcher = sohLauncher pkgs;
     in {
       options.programs.shipofharkinian = {
@@ -89,8 +90,8 @@
           data_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian"
           mkdir -p $data_dir
 
-          install -Dm755 "${appimage}/soh.appimage" "$data_dir/soh.appimage"
-          ${lib.concatMapStringSep "\n" (path: ''
+          install -Dm755 "${installer}/soh.appimage" "$data_dir/soh.appimage"
+          ${lib.concatMapStringsSep "\n" (path: ''
             source=${lib.escapeShellArg path}
             target="$data_dir/$(basename "$source")"
             if [ ! -f "$source" ]; then
@@ -103,6 +104,28 @@
           '') cfg.gamepaths}
         '';
       };
+    };
+
+    homeConfigurations.test = let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs { inherit system; };
+    in home-manager.lib.homeManagerConfiguration {
+      inherit pkgs;
+      modules = [
+        self.homeManagerModules.shipofharkinian
+        {
+          home.username = "test";
+          home.homeDirectory = "/tmp/soh-test";
+          home.stateVersion = "25.05";
+          programs.shipofharkinian = {
+            enable = true;
+            gamepaths = [
+              "/tmp/soh-test/image1"
+              "/tmp/soh-test/image2"
+            ];
+          };
+        }
+      ];
     };
   };
 }
