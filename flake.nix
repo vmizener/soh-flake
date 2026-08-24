@@ -38,12 +38,14 @@
       install -Dm755 "$appimage" "$out/soh.appimage"
       install -Dm644 ${./soh.desktop} $out/share/applications/soh.desktop
     '';
-    sohLauncher = pkgs: pkgs.writeShellApplication {
+
+    defaultDataDir = "\${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian";
+    sohLauncher = pkgs: datadir: pkgs.writeShellApplication {
       name = "ShipOfHarkinian";
       runtimeInputs = [ pkgs.coreutils ];
       text = ''
-        data_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian"
-        appimage="data_dir/soh.appimage"
+        data_dir="${datadir}"
+        appimage="$data_dir/soh.appimage"
         if [ ! -x "$appimage" ]; then
           echo "soh.appimage missing in data dir; run home manager activation first" >&2
           exit 1
@@ -57,24 +59,32 @@
       pkgs = import nixpkgs { inherit system; };
     in rec {
       shipinstaller = sohInstaller pkgs;
-      shipofharkinian = sohLauncher pkgs;
+      shipofharkinian = sohLauncher pkgs defaultDataDir;
       default = shipofharkinian;
     });
 
     checks = forAllSystems (system: let
       pkgs = import nixpkgs { inherit system; };
-      package = sohLauncher pkgs;
+      package = sohLauncher pkgs defaultDataDir;
+      tests = import ./tests.nix { inherit self pkgs home-manager; };
     in {
       package-builds = package;
-    });
+    } // (nixpkgs.lib.optionalAttrs (system == "x86_64-linux") tests.checks));
 
     homeManagerModules.shipofharkinian = { config, lib, pkgs, ... }: let
       cfg = config.programs.shipofharkinian;
       installer = sohInstaller pkgs;
-      launcher = sohLauncher pkgs;
+      launcher = sohLauncher pkgs cfg.datadir;
     in {
       options.programs.shipofharkinian = {
         enable = lib.mkEnableOption "Ship of Harkinian";
+        datadir = lib.mkOption {
+          type = lib.types.str;
+          default = defaultDataDir;
+          description = ''
+            Directory where SoH data will be stored.
+          '';
+        };
         gamepaths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [];
@@ -87,8 +97,8 @@
       config = lib.mkIf cfg.enable {
         home.packages = [ launcher ];
         home.activation.shipofharkinianImages = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          data_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian"
-          mkdir -p $data_dir
+          data_dir="${cfg.datadir}"
+          mkdir -p "$data_dir"
 
           install -Dm755 "${installer}/soh.appimage" "$data_dir/soh.appimage"
           ${lib.concatMapStringsSep "\n" (path: ''
@@ -106,26 +116,9 @@
       };
     };
 
-    homeConfigurations.test = let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
-    in home-manager.lib.homeManagerConfiguration {
-      inherit pkgs;
-      modules = [
-        self.homeManagerModules.shipofharkinian
-        {
-          home.username = "test";
-          home.homeDirectory = "/tmp/soh-test";
-          home.stateVersion = "25.05";
-          programs.shipofharkinian = {
-            enable = true;
-            gamepaths = [
-              "/tmp/soh-test/image1"
-              "/tmp/soh-test/image2"
-            ];
-          };
-        }
-      ];
-    };
+    homeConfigurations.test = (import ./tests.nix {
+      inherit self home-manager;
+      pkgs = import nixpkgs { system = "x86_64-linux"; };
+    }).homeConfiguration;
   };
 }
