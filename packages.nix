@@ -36,7 +36,8 @@
       echo "AppImage missing in data dir; run home manager activation first" >&2
       exit 1
     fi
-    exec ${pkgs.appimage-run}/bin/appimage-run "$appimage" "$@"
+    cd "$data_home"
+    ${pkgs.lib.getExe pkgs.appimage-run} "$appimage"
   '';
 in {
   inherit sohAppImage sohLauncher;
