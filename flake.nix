@@ -28,15 +28,16 @@
       shipofharkinian-launcher = syspkgs.sohLauncher;
     });
 
-    checks = forAllSystems (system: let
-      syspkgs = mkPackages system;
-    in {
-      package-builds = syspkgs.sohLauncher;
-    });
+    checks = forAllSystems (system: {
+      package-builds = (mkPackages system).sohLauncher;
+    } // (import ./tests {
+      inherit home-manager self;
+      pkgs = import nixpkgs { inherit system; };
+    }));
 
     homeManagerModules.default = {config, lib, pkgs, ...}: let
       cfg = config.programs.shipofharkinian;
-      syspkgs = mkPackages pkgs.system;
+      syspkgs = mkPackages pkgs.stdenv.hostPlatform.system;
     in {
       options.programs.shipofharkinian = {
         enable = lib.mkEnableOption "Ship of Harkinian";
@@ -77,10 +78,5 @@
         };
       };
     };
-
-    homeConfigurations.test = (import ./tests.nix {
-      inherit self home-manager;
-      pkgs = import nixpkgs { system = "x86_64-linux"; };
-    }).homeConfiguration;
   };
 }
