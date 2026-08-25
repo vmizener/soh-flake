@@ -1,12 +1,19 @@
-{ pkgs, home-manager, self }: let
+{
+  pkgs,
+  home-manager,
+  self,
+}:
+let
   testHomeConfig = home-manager.lib.homeManagerConfiguration {
     inherit pkgs;
     modules = [
       self.homeManagerModules.default
       {
-        home.username = "test";
-        home.homeDirectory = "/home/test";
-        home.stateVersion = "25.05";
+        home = {
+          username = "test";
+          homeDirectory = "/home/test";
+          stateVersion = "25.05";
+        };
         programs.shipofharkinian = {
           enable = true;
           gamepaths = [
@@ -18,4 +25,4 @@
     ];
   };
 in
-  testHomeConfig.activationPackage
+testHomeConfig.activationPackage

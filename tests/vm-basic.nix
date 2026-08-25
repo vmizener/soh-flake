@@ -1,8 +1,16 @@
-{ pkgs, home-manager, self }: pkgs.testers.runNixOSTest {
+{
+  pkgs,
+  home-manager,
+  self,
+}:
+pkgs.testers.runNixOSTest {
   name = "shipofharkinian-hm-test";
   nodes.machine = { ... }: {
     imports = [ home-manager.nixosModules.home-manager ];
-    virtualisation.qemu.options = [ "-machine" "accel=tcg" ];  # Run without hardware KVM
+    virtualisation.qemu.options = [
+      "-machine"
+      "accel=tcg"
+    ]; # Run without hardware KVM
     users.users.test = {
       isNormalUser = true;
       home = "/home/test";

@@ -1,17 +1,17 @@
-{pkgs}: let
+{ pkgs }:
+let
   releaseInfo = import ./release-linux.nix;
 
   sohAppImage = pkgs.stdenvNoCC.mkDerivation {
     pname = "shipofharkinian-appimage";
     version = "latest";
     src = pkgs.fetchzip {
-      name = releaseInfo.name;
+      inherit (releaseInfo) name hash;
       url =
         "https://github.com/HarbourMasters/Shipwright/releases/download/"
         + releaseInfo.version
         + releaseInfo.name
         + "-Linux.zip";
-      hash = releaseInfo.hash;
       stripRoot = false;
     };
     dontConfigure = true;
@@ -40,6 +40,7 @@
     cd "$shipdir"
     ${pkgs.lib.getExe pkgs.appimage-run} "$appimage"
   '';
-in {
+in
+{
   inherit sohAppImage sohLauncher;
 }
