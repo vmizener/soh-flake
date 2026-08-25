@@ -36,7 +36,6 @@
       fi
       mkdir -p "$out"
       install -Dm755 "$appimage" "$out/soh.appimage"
-      install -Dm644 ${./soh.desktop} $out/share/applications/soh.desktop
     '';
 
     defaultDataDir = "\${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian";
@@ -100,10 +99,21 @@
           shipofharkinian
         ];
         home.activation.shipofharkinianImages = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          # Install app image
           data_dir="${cfg.datadir}"
           mkdir -p "$data_dir"
+          install -Dm755 \
+            "${shipinstaller}/soh.appimage" \
+            "$data_dir/soh.appimage"
 
-          install -Dm755 "${shipinstaller}/soh.appimage" "$data_dir/soh.appimage"
+          # Install desktop file
+          apps_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/applications";
+          mkdir -p "$data_dir"
+          install -Dm644 \
+            "${./soh.desktop}" \
+            "$apps_dir/soh.desktop"
+
+          # Install game images
           ${lib.concatMapStringsSep "\n" (path: ''
             source=${lib.escapeShellArg path}
             target="$data_dir/$(basename "$source")"
