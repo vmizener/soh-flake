@@ -113,6 +113,14 @@
             "${./soh.desktop}" \
             "$apps_dir/soh.desktop"
 
+          # Install icon
+          icon_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/512x512/apps";
+          mkdir -p "$icon_dir"
+          install -Dm644 \
+            "${./soh.png}" \
+            "$icon_dir/shipofharkinian.png"
+
+
           # Install game images
           ${lib.concatMapStringsSep "\n" (path: ''
             source=${lib.escapeShellArg path}

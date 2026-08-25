@@ -2,6 +2,7 @@
 Name=Ship of Harkinian
 Comment=Enough! My ship sails in the morning!
 Exec=ShipOfHarkinian
+Icon=shipofharkinian
 Terminal=false
 Type=Application
 Categories=Game;
