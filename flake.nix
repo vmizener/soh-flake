@@ -51,7 +51,7 @@
           exit 1
         fi
         cd "$data_dir"
-        exec "$appimage" "$@"
+        appimage-run "$appimage"
       '';
     };
   in {
@@ -73,8 +73,8 @@
 
     homeManagerModules.shipofharkinian = { config, lib, pkgs, ... }: let
       cfg = config.programs.shipofharkinian;
-      installer = sohInstaller pkgs;
-      launcher = sohLauncher pkgs cfg.datadir;
+      shipinstaller = sohInstaller pkgs;
+      shipofharkinian = sohLauncher pkgs cfg.datadir;
     in {
       options.programs.shipofharkinian = {
         enable = lib.mkEnableOption "Ship of Harkinian";
@@ -95,12 +95,15 @@
         };
       };
       config = lib.mkIf cfg.enable {
-        home.packages = [ launcher ];
+        home.packages = [
+          pkgs.appimage-run
+          shipofharkinian
+        ];
         home.activation.shipofharkinianImages = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
           data_dir="${cfg.datadir}"
           mkdir -p "$data_dir"
 
-          install -Dm755 "${installer}/soh.appimage" "$data_dir/soh.appimage"
+          install -Dm755 "${shipinstaller}/soh.appimage" "$data_dir/soh.appimage"
           ${lib.concatMapStringsSep "\n" (path: ''
             source=${lib.escapeShellArg path}
             target="$data_dir/$(basename "$source")"
