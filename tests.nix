@@ -5,9 +5,9 @@ let
     home.username = "test";
     home.homeDirectory = "/tmp/soh-test";
     home.stateVersion = "25.05";
+    xdg.dataHome = "/tmp/soh-test/datadir";
     programs.shipofharkinian = {
       enable = true;
-      datadir = "/tmp/soh-test/datadir";
       gamepaths = [
         "/tmp/soh-test/image1"
         "/tmp/soh-test/image2"
@@ -18,7 +18,7 @@ let
   testHomeConfig = home-manager.lib.homeManagerConfiguration {
     inherit pkgs;
     modules = [
-      self.homeManagerModules.shipofharkinian
+      self.homeManagerModules.default
       testModule
     ];
   };
@@ -34,9 +34,9 @@ let
     echo "luigi" > "$HOME/image2"
 
     # Run the activation script
-    ${testHomeConfig.config.home.activation.shipofharkinianImages.data}
+    ${testHomeConfig.config.home.activation.shipofharkinian.data}
 
-    data_dir="${testHomeConfig.config.programs.shipofharkinian.datadir}"
+    data_dir="${testHomeConfig.config.xdg.dataHome}"
 
     # 1. Assert soh.appimage was installed and is executable
     if [ ! -x "$data_dir/soh.appimage" ]; then
