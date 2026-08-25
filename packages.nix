@@ -30,13 +30,14 @@
   sohLauncher = pkgs.writeShellScriptBin "ShipOfHarkinian" ''
     set -eu
 
-    data_home="''${XDG_DATA_HOME:-$HOME/.local/share}"
-    appimage="$data_home/shipofharkinian/soh.appimage"
+    shipdir="''${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian"
+    appimage="$shipdir/soh.appimage"
+
     if [ ! -x "$appimage" ]; then
       echo "AppImage missing in data dir; run home manager activation first" >&2
       exit 1
     fi
-    cd "$data_home"
+    cd "$shipdir"
     ${pkgs.lib.getExe pkgs.appimage-run} "$appimage"
   '';
 in {

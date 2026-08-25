@@ -72,7 +72,7 @@
           '') cfg.gamepaths}
         '';
         xdg.dataFile = {
-          "applications/shipofharkinian/soh.desktop".source = ./soh.desktop;
+          "applications/shipofharkinian.desktop".source = ./soh.desktop;
           "icons/hicolor/512x512/apps/shipofharkinian.png".source = ./soh.png;
         };
       };
