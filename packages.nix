@@ -10,6 +10,7 @@ let
       url =
         "https://github.com/HarbourMasters/Shipwright/releases/download/"
         + releaseInfo.version
+        + "/"
         + releaseInfo.name
         + "-Linux.zip";
       stripRoot = false;
