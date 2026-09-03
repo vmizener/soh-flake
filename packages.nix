@@ -28,19 +28,23 @@ let
       runHook postInstall
     '';
   };
-  sohLauncher = pkgs.writeShellScriptBin "ShipOfHarkinian" ''
-    set -eu
+  sohLauncher =
+    {
+      datadir ? "\${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian",
+    }:
+    pkgs.writeShellScriptBin "ShipOfHarkinian" ''
+      set -eu
 
-    shipdir="''${XDG_DATA_HOME:-$HOME/.local/share}/shipofharkinian"
-    appimage="$shipdir/soh.appimage"
+      datadir="${datadir}"
+      appimage="$datadir/soh.appimage"
 
-    if [ ! -x "$appimage" ]; then
-      echo "AppImage missing in data dir; run home manager activation first" >&2
-      exit 1
-    fi
-    cd "$shipdir"
-    ${pkgs.lib.getExe pkgs.appimage-run} "$appimage"
-  '';
+      if [ ! -x "$appimage" ]; then
+        echo "AppImage missing in data dir; run home manager activation first" >&2
+        exit 1
+      fi
+      cd "$datadir"
+      ${pkgs.lib.getExe pkgs.appimage-run} "$appimage"
+    '';
 in
 {
   inherit sohAppImage sohLauncher;

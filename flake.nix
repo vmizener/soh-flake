@@ -60,12 +60,12 @@
         rec {
           default = shipofharkinian-appimage;
           shipofharkinian-appimage = syspkgs.sohAppImage;
-          shipofharkinian-launcher = syspkgs.sohLauncher;
+          shipofharkinian-launcher = syspkgs.sohLauncher { };
 
           all-checks = pkgs.linkFarm "all-checks" (
             tests.all
             // {
-              package-builds = syspkgs.sohLauncher;
+              package-builds = syspkgs.sohLauncher { };
             }
           );
         }
@@ -80,7 +80,7 @@
         in
         {
           pre-commit-check = gitHooks;
-          package-builds = syspkgs.sohLauncher;
+          package-builds = syspkgs.sohLauncher { };
         }
         // tests.fast
       );
@@ -115,6 +115,14 @@
         {
           options.programs.shipofharkinian = {
             enable = lib.mkEnableOption "Ship of Harkinian";
+            datadir = lib.mkOption {
+              type = lib.types.str;
+              default = "${config.xdg.dataHome}/shipofharkinian";
+              defaultText = "$XDG_DATA_HOME/shipofharkinian";
+              description = ''
+                Directory to write SoH assets (e.g. the AppImage).
+              '';
+            };
             gamepaths = lib.mkOption {
               type = lib.types.listOf lib.types.str;
               default = [ ];
@@ -128,11 +136,11 @@
           config = lib.mkIf cfg.enable {
             home.packages = [
               pkgs.appimage-run
-              syspkgs.sohLauncher
+              (syspkgs.sohLauncher { inherit (cfg) datadir; })
             ];
 
             home.activation.shipofharkinian = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-              datadir="${config.xdg.dataHome}/shipofharkinian"
+              datadir="${cfg.datadir}"
               mkdir -p "$datadir"
               install -Dm755 "${syspkgs.sohAppImage}/soh.appimage" "$datadir/soh.appimage"
 

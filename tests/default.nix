@@ -18,12 +18,13 @@ let
       inherit pkgs home-manager self;
     }).overrideTestDerivation
       (_: {
-        requiredSystemFeatures = [ ];
+        requiredSystemFeatures = [ ]; # Omit kvm requirement
       });
 in
 rec {
   fast = {
     evalBasic = mkEvalTest ./eval-basic.nix;
+    evalCustomDatadir = mkEvalTest ./eval-custom-datadir.nix;
   };
 
   vm = {
