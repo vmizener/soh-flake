@@ -14,3 +14,6 @@ check-fast:
 
 check-all:
     nix build ".#all-checks" --no-link -L
+
+update-release flags="":
+    ./scripts/update-release.sh {{flags}}

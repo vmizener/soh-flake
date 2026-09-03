@@ -1,0 +1,44 @@
+name: "Weekly CI"
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Every Sunday at 00:00 UTC
+  workflow_dispatch: # Allows manual run on demand
+
+jobs:
+  check-all:
+    name: "Weekly check-all"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for commits in the past 7 days
+        id: commit_check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manually dispatched; running all checks."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          RECENT_COMMIT=$(git log -1 --since='7 days ago' --format='%h - %s (%ci)')
+          if [ -n "$RECENT_COMMIT" ]; then
+            echo "Recent commit detected within the past 7 days: $RECENT_COMMIT"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Latest commit is older than 7 days. Skipping check-all."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Nix
+        if: steps.commit_check.outputs.should_run == 'true'
+        uses: DeterminateSystems/nix-installer-action@v16
+
+      - name: Magic Nix Cache
+        if: steps.commit_check.outputs.should_run == 'true'
+        uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Build All Checks
+        if: steps.commit_check.outputs.should_run == 'true'
+        run: nix build ".#all-checks" --no-link -L
