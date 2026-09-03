@@ -142,7 +142,7 @@
             home.activation.shipofharkinian = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
               datadir="${cfg.datadir}"
               mkdir -p "$datadir"
-              install -Dm755 "${syspkgs.sohAppImage}/soh.appimage" "$datadir/soh.appimage"
+              ln -sfn "${syspkgs.sohAppImage}/soh.appimage" "$datadir/soh.appimage"
 
               ${lib.concatMapStringsSep "\n" (path: ''
                 source=${lib.escapeShellArg path}

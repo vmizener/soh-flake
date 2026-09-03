@@ -51,6 +51,7 @@ pkgs.testers.runNixOSTest {
 
     with subtest("Verify file locations and links in custom datadir"):
         datadir = "${datadir}"
+        machine.succeed(f"test -L {datadir}/soh.appimage")
         machine.succeed(f"test -x {datadir}/soh.appimage")
         machine.succeed(f"test -L {datadir}/${imgname}")
         machine.succeed(f"cmp -s ${testimg} {datadir}/${imgname}")
